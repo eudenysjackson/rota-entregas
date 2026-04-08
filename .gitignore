@@ -1,0 +1,18 @@
+# Credenciais Google (nunca subir para o GitHub)
+client_secret.json
+token.json
+
+# Dados locais de rota
+rota.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# VS Code
+.vscode/
+*.code-workspace

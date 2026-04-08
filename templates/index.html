@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rota de Entregas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ───────────── RESET & BASE ───────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:        #2563EB;
+      --blue-dark:   #1d4ed8;
+      --blue-light:  #EFF6FF;
+      --red:         #DC2626;
+      --red-light:   #FEF2F2;
+      --green:       #16a34a;
+      --green-light: #F0FDF4;
+      --yellow:      #b45309;
+      --yellow-light:#FFFBEB;
+      --gray-50:     #F9FAFB;
+      --gray-100:    #F3F4F6;
+      --gray-200:    #E5E7EB;
+      --gray-400:    #9CA3AF;
+      --gray-500:    #6B7280;
+      --gray-700:    #374151;
+      --gray-900:    #111827;
+      --radius:      10px;
+      --shadow:      0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-lg:   0 10px 15px -3px rgba(0,0,0,.1);
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-900);
+      min-height: 100vh;
+    }
+
+    /* ───────────── HEADER ───────────── */
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; display: flex; align-items: center; gap: 8px; }
+    header .actions { display: flex; gap: 6px; align-items: center; }
+    .hbtn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, transform .1s;
+      line-height: 1;
+    }
+    .hbtn:active { transform: scale(.96); }
+    .hbtn-ghost  { background: rgba(255,255,255,.15); color: #fff; }
+    .hbtn-ghost:hover  { background: rgba(255,255,255,.28); }
+    .hbtn-green  { background: #16a34a; color: #fff; }
+    .hbtn-green:hover  { background: #15803d; }
+    .hbtn-red    { background: #DC2626; color: #fff; }
+    .hbtn-red:hover    { background: #b91c1c; }
+    .hbtn-white  { background: #fff; color: var(--blue); }
+    .hbtn-white:hover  { background: #e0eaff; }
+    .hbtn-sep { width: 1px; height: 28px; background: rgba(255,255,255,.25); margin: 0 4px; }
+
+    /* ───────────── LAYOUT ───────────── */
+    .container {
+      width: 100%;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      align-items: start;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+    .container > div {
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .container > div .card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; height: auto; overflow: visible; }
+    }
+
+    /* ───────────── CARD ───────────── */
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ───────────── BOTÕES ───────────── */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background .15s, opacity .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary   { background: var(--blue);   color: #fff; padding: 10px 18px; }
+    .btn-primary:hover:not(:disabled)   { background: var(--blue-dark); }
+    .btn-danger    { background: var(--red);    color: #fff; padding: 10px 18px; }
+    .btn-danger:hover:not(:disabled)    { background: #b91c1c; }
+    .btn-success   { background: var(--green);  color: #fff; padding: 10px 18px; }
+    .btn-success:hover:not(:disabled)   { background: #15803d; }
+    .btn-ghost     { background: transparent; color: var(--gray-700); padding: 8px 14px; border: 1px solid var(--gray-200); }
+    .btn-ghost:hover:not(:disabled)     { background: var(--gray-100); }
+    .btn-sm        { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+    .btn-full      { width: 100%; justify-content: center; margin-top: 10px; }
+
+    /* ───────────── INPUTS ───────────── */
+    .input-wrap { position: relative; }
+    input[type="text"], input[type="date"] {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+      transition: border-color .15s;
+      background: #fff;
+    }
+    input:focus { border-color: var(--blue); }
+    label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--gray-500); }
+
+    /* ───────────── BUSCA ───────────── */
+    #painel-busca { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+    #lista-resultados { flex: 1; overflow-y: auto; }
+    .result-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--gray-200);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background .15s;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-item:hover { background: var(--blue-light); }
+    .result-item .nome { font-weight: 600; font-size: 15px; }
+    .result-item .sub  { font-size: 13px; color: var(--gray-500); margin-top: 3px; }
+    .badge { background: var(--blue-light); color: var(--blue); padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .msg-vazia { padding: 24px; text-align: center; color: var(--gray-400); font-size: 14px; }
+
+    /* ───────────── MODAL ───────────── */
+    .overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn .2s;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 480px;
+      margin: 16px;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp .25s;
+    }
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 17px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-200); display: flex; flex-direction: column; gap: 8px; }
+    .btn-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-500); line-height: 1; }
+    .field-label { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .field-value { font-size: 15px; font-weight: 600; }
+    .field-sub   { font-size: 14px; color: var(--gray-700); }
+
+    /* Seleção de endereços */
+    #lista-enderecos .result-item .nome { font-size: 14px; }
+
+    /* ───────────── ROTA TABLE ───────────── */
+    .rota-toolbar {
+      padding: 10px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gray-50);
+      flex-shrink: 0;
+    }
+    #rota-container { flex: 1; overflow-y: auto; }
+    .rota-empty { padding: 48px; text-align: center; color: var(--gray-400); }
+    .rota-empty .icon { font-size: 40px; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead th {
+      padding: 11px 14px;
+      text-align: left;
+      background: var(--gray-50);
+      border-bottom: 2px solid var(--gray-200);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--gray-500);
+    }
+    tbody tr { border-bottom: 1px solid var(--gray-200); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--gray-50); }
+    tbody td { padding: 12px 14px; vertical-align: middle; }
+    .td-num {
+      width: 36px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--blue);
+      font-size: 13px;
+    }
+    .chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .chip-bairro { background: var(--blue-light); color: var(--blue); }
+
+    /* ───────────── TOAST ───────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 14px 20px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 14px;
+      color: #fff;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity .3s, transform .3s;
+      z-index: 500;
+      max-width: 320px;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: var(--green); }
+    #toast.error   { background: var(--red); }
+    #toast.info    { background: var(--blue); }
+
+    /* ───────────── SPINNER ───────────── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+    }
+    .spinner-dark {
+      border-color: rgba(0,0,0,.15);
+      border-top-color: var(--blue);
+    }
+
+    @keyframes spin     { to { transform: rotate(360deg); } }
+    @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🐾 Rota de Entregas</h1>
+  <div class="actions">
+    {% if autenticado %}
+    <button class="hbtn hbtn-white" onclick="reordenar()">🔄 Reordenar</button>
+    <div class="hbtn-sep"></div>
+    <button class="hbtn hbtn-white" onclick="gerarPDF()">🖨️ Imprimir PDF</button>
+    <button class="hbtn hbtn-white" onclick="confirmarLimpar()">🗑️ Limpar</button>
+    <div class="hbtn-sep"></div>
+    <a href="/logout" class="hbtn hbtn-white" style="text-decoration:none">🚪 Sair</a>
+    {% else %}
+    <a href="/login" class="hbtn hbtn-white" style="text-decoration:none">🔑 Entrar com Google</a>
+    {% endif %}
+  </div>
+</header>
+
+<div class="container">
+
+  {% if not autenticado %}
+  <!-- ─── TELA DE LOGIN ─── -->
+  <div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; min-height: 60vh;">
+    <div style="text-align:center; max-width: 420px;">
+      <div style="font-size:64px; margin-bottom:16px">🐾</div>
+      <h2 style="font-size:24px; margin-bottom:8px; color:var(--gray-900)">Rota de Entregas</h2>
+      <p style="color:var(--gray-500); margin-bottom:32px; font-size:15px">
+        Entre com sua conta Google para acessar suas planilhas e gerenciar a rota.
+      </p>
+      <a href="/login" style="
+        display:inline-flex; align-items:center; gap:10px;
+        background:#fff; border:1.5px solid var(--gray-200);
+        border-radius:10px; padding:14px 28px;
+        font-family:inherit; font-size:16px; font-weight:600;
+        color:var(--gray-900); text-decoration:none;
+        box-shadow: var(--shadow);
+        transition: box-shadow .2s;
+      " onmouseover="this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.boxShadow='var(--shadow)'">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="22" alt="Google">
+        Entrar com Google
+      </a>
+    </div>
+  </div>
+
+  {% else %}
+
+  <!-- ─── PAINEL DE BUSCA ─── -->
+  <div>
+    <div class="card">
+      <div class="card-header">🔍 Nova Entrega</div>
+      <div id="painel-busca">
+        <div class="input-wrap">
+          <input type="text" id="campoBusca" placeholder="Nome do tutor ou pet…" autocomplete="off"
+                 oninput="debounce(buscar, 300)()" onkeydown="if(event.key==='Enter') buscar()"/>
+        </div>
+        <button class="btn-primary btn-full" onclick="buscar()">
+          <span id="busca-icon">🔍</span> <span id="busca-txt">Pesquisar</span>
+        </button>
+      </div>
+      <div id="lista-resultados">
+        <div class="msg-vazia">Digite para buscar clientes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── LISTA DE ROTA ─── -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        📋 Rota do Dia
+        <span id="contador-badge" class="badge" style="margin-left:auto"></span>
+      </div>
+      <div class="rota-toolbar">
+        <button class="btn-ghost btn-sm" onclick="carregarRota()">↩ Atualizar</button>
+        <span id="rota-loading" style="display:none"><span class="spinner spinner-dark"></span></span>
+      </div>
+      <div id="rota-container">
+        <div class="rota-empty">
+          <div class="icon">📦</div>
+          <div>Nenhuma entrega agendada</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── MODAL: SELEÇÃO DE ENDEREÇO ─── -->
+<div id="overlay-endereco" class="overlay" onclick="if(event.target===this) fecharModal('overlay-endereco')">
+  <div class="modal">
+    <div class="modal-header">
+      📍 Selecione o Endereço
+      <button class="btn-close" onclick="fecharModal('overlay-endereco')">✕</button>
+    </div>
+    <p style="padding: 12px 24px 0; font-size:14px; color:var(--gray-500)">
+      <b id="lbl-tutor-end"></b> tem mais de um endereço cadastrado:
+    </p>
+    <div id="lista-enderecos" style="max-height:320px; overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn-ghost btn-full" onclick="fecharModal('overlay-endereco')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL: CONFIRMAÇÃO ─── -->
+<div id="overlay-confirmacao" class="overlay" onclick="if(event.target===this) fecharModal('overlay-confirmacao')">
+  <div class="modal">
+    <div class="modal-header">
+      ✅ Confirmar Entrega
+      <button class="btn-close" onclick="fecharModal('overlay-confirmacao')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="field-label">Cliente</div>
+        <div class="field-value" id="conf-tutor"></div>
+      </div>
+      <div>
+        <div class="field-label">Pets</div>
+        <div class="field-value" id="conf-pets"></div>
+      </div>
+      <div>
+        <div class="field-label">Endereço</div>
+        <div class="field-sub" id="conf-end"></div>
+      </div>
+      <div>
+        <label for="campoData">Data da Entrega</label>
+        <input type="date" id="campoData"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary btn-full" id="btn-confirmar" onclick="salvar()">Confirmar Agendamento</button>
+      <button class="btn-ghost btn-full" onclick="fecharModal('overlay-confirmacao')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div id="toast"></div>
+
+{% endif %}
+
+<script>
+// ─────────────────────────────────────────────
+//  ESTADO GLOBAL
+// ─────────────────────────────────────────────
+var estado = {
+  tutor: '',
+  pets: '',
+  enderecoSelecionado: null,
+  multEnderecos: [],
+};
+
+// ─────────────────────────────────────────────
+//  UTILITÁRIOS
+// ─────────────────────────────────────────────
+function debounce(fn, delay) {
+  var t;
+  return function() {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, arguments), delay);
+  };
+}
+
+function toast(msg, tipo = 'success', dur = 3500) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + tipo;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', dur);
+}
+
+function abrirModal(id)  { document.getElementById(id).classList.add('open'); }
+function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function get(url) {
+  const r = await fetch(url);
+  if (r.status === 401) { window.location.href = '/login'; return; }
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function post(url, data) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (r.status === 401) { window.location.href = '/login'; return; }
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ─────────────────────────────────────────────
+//  BUSCA
+// ─────────────────────────────────────────────
+async function buscar() {
+  var termo = document.getElementById('campoBusca').value.trim();
+  if (termo.length < 2) return;
+
+  setBuscandoState(true);
+  try {
+    var lista = await get('/api/buscar?q=' + encodeURIComponent(termo));
+    renderResultados(lista);
+  } catch(e) {
+    toast('Erro ao buscar: ' + e.message, 'error');
+  } finally {
+    setBuscandoState(false);
+  }
+}
+
+function setBuscandoState(loading) {
+  document.getElementById('busca-icon').textContent = loading ? '' : '🔍';
+  document.getElementById('busca-txt').textContent  = loading ? 'Buscando…' : 'Pesquisar';
+  if (loading) {
+    document.getElementById('busca-icon').innerHTML = '<span class="spinner"></span>';
+  }
+  document.querySelector('#painel-busca .btn-primary').disabled = loading;
+}
+
+function renderResultados(lista) {
+  var container = document.getElementById('lista-resultados');
+  if (lista.length === 0) {
+    container.innerHTML = '<div class="msg-vazia">Nenhum cliente encontrado</div>';
+    return;
+  }
+  container.innerHTML = lista.map(item => `
+    <div class="result-item" onclick="selecionar(${item.id})">
+      <div>
+        <div class="nome">${item.tutor}</div>
+        <div class="sub">🐾 ${item.pet}</div>
+      </div>
+      <span class="badge">Selecionar</span>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────
+//  SELEÇÃO
+// ─────────────────────────────────────────────
+async function selecionar(id) {
+  try {
+    var r = await get('/api/selecionar?id=' + id);
+    estado.tutor = r.tutor;
+    estado.pets  = r.pets;
+    estado.multEnderecos = r.enderecos;
+
+    if (r.enderecos.length > 1) {
+      document.getElementById('lbl-tutor-end').textContent = r.tutor;
+      var ul = document.getElementById('lista-enderecos');
+      ul.innerHTML = r.enderecos.map((end, i) => `
+        <div class="result-item" onclick="irParaConfirmacao(${i})">
+          <div>
+            <div class="nome">${end.bairro}</div>
+            <div class="sub">${end.endereco}, ${end.numero} ${end.complemento || ''}</div>
+          </div>
+          <span style="color:var(--blue)">➤</span>
+        </div>
+      `).join('');
+      abrirModal('overlay-endereco');
+    } else {
+      irParaConfirmacao(0);
+    }
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+function irParaConfirmacao(idx) {
+  fecharModal('overlay-endereco');
+  var end = estado.multEnderecos[idx] || { endereco: 'N/D', numero: '', bairro: '', complemento: '' };
+  estado.enderecoSelecionado = end;
+
+  document.getElementById('conf-tutor').textContent = estado.tutor;
+  document.getElementById('conf-pets').textContent  = estado.pets;
+  document.getElementById('conf-end').textContent   =
+    end.endereco + ', ' + end.numero + (end.complemento ? ' ' + end.complemento : '') + ' — ' + end.bairro;
+
+  // Define data padrão (próxima quinta)
+  var input = document.getElementById('campoData');
+  if (!input.value) input.value = proximaQuintaInput();
+
+  abrirModal('overlay-confirmacao');
+}
+
+// ─────────────────────────────────────────────
+//  SALVAR
+// ─────────────────────────────────────────────
+async function salvar() {
+  var data = document.getElementById('campoData').value;
+  if (!data) { toast('Selecione uma data', 'error'); return; }
+
+  var btn = document.getElementById('btn-confirmar');
+  btn.innerHTML = '<span class="spinner"></span> Salvando…';
+  btn.disabled = true;
+
+  try {
+    var res = await post('/api/salvar', {
+      tutor:       estado.tutor,
+      pets:        estado.pets,
+      endereco:    estado.enderecoSelecionado.endereco,
+      numero:      estado.enderecoSelecionado.numero,
+      complemento: estado.enderecoSelecionado.complemento,
+      bairro:      estado.enderecoSelecionado.bairro,
+      data:        data,
+    });
+    fecharModal('overlay-confirmacao');
+    toast('✅ ' + res.msg, 'success');
+    document.getElementById('campoBusca').value = '';
+    document.getElementById('lista-resultados').innerHTML = '<div class="msg-vazia">Digite para buscar clientes</div>';
+    await carregarRota();
+  } catch(e) {
+    toast('Erro ao salvar: ' + e.message, 'error');
+  } finally {
+    btn.textContent = 'Confirmar Agendamento';
+    btn.disabled = false;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ROTA
+// ─────────────────────────────────────────────
+async function carregarRota() {
+  document.getElementById('rota-loading').style.display = 'inline';
+  try {
+    var rota = await get('/api/rota');
+    renderRota(rota);
+  } catch(e) {
+    toast('Erro ao carregar rota: ' + e.message, 'error');
+  } finally {
+    document.getElementById('rota-loading').style.display = 'none';
+  }
+}
+
+function renderRota(rota) {
+  var container = document.getElementById('rota-container');
+  var badge = document.getElementById('contador-badge');
+  badge.textContent = rota.length > 0 ? rota.length + ' entrega(s)' : '';
+
+  if (rota.length === 0) {
+    container.innerHTML = `
+      <div class="rota-empty">
+        <div class="icon">📦</div>
+        <div>Nenhuma entrega agendada</div>
+      </div>`;
+    return;
+  }
+
+  var rows = rota.map((item, i) => `
+    <tr>
+      <td class="td-num">${i + 1}</td>
+      <td><b>${item.tutor}</b><br><span style="font-size:12px;color:var(--gray-500)">🐾 ${item.pet}</span></td>
+      <td>${item.endereco}, ${item.numero}${item.complemento ? ' ' + item.complemento : ''}</td>
+      <td><span class="chip chip-bairro">${item.bairro}</span></td>
+      <td style="font-size:13px;color:var(--gray-500)">${item.data}</td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Cliente</th>
+            <th>Endereço</th>
+            <th>Bairro</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────
+//  AÇÕES
+// ─────────────────────────────────────────────
+async function reordenar() {
+  try {
+    await post('/api/reordenar', {});
+    toast('Rota reordenada!', 'info');
+    await carregarRota();
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+function confirmarLimpar() {
+  if (confirm('Deseja limpar toda a lista de entregas? Esta ação não pode ser desfeita.')) {
+    limpar();
+  }
+}
+
+async function limpar() {
+  try {
+    await post('/api/limpar', {});
+    toast('Lista limpa!', 'info');
+    await carregarRota();
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+async function gerarPDF() {
+  try {
+    var rota = await get('/api/rota');
+    if (rota.length === 0) { toast('A rota está vazia!', 'error'); return; }
+    imprimirPDF(rota);
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+function imprimirPDF(rota) {
+  var hoje = new Date();
+  var dias = (3 - hoje.getDay() + 7) % 7;
+  hoje.setDate(hoje.getDate() + dias);
+  var dataStr = hoje.toLocaleDateString('pt-BR');
+
+  var linhas = rota.map((item, i) => `
+    <tr>
+      <td style="text-align:center;font-weight:700;color:#1d4ed8">${i+1}</td>
+      <td><b>${item.tutor}</b><br><small style="color:#555">🐾 ${item.pet}</small></td>
+      <td>${item.endereco}, ${item.numero}${item.complemento ? ' ' + item.complemento : ''}</td>
+      <td><b>${item.bairro}</b></td>
+      <td>${item.data}</td>
+    </tr>`).join('');
+
+  var html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Rota de Entregas – ${dataStr}</title>
+  <style>
+    @page { size: A4 landscape; margin: 1.2cm; }
+    body{font-family:Arial,sans-serif;padding:0;font-size:11px;color:#111}
+    h2{color:#1d4ed8;margin-bottom:4px;font-size:16px}
+    p{color:#555;margin-bottom:12px;font-size:11px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#1d4ed8;color:#fff;padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+    td{padding:7px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+    tr:nth-child(even) td{background:#f9fafb}
+  </style></head><body>
+  <h2>🐾 Rota de Entregas</h2>
+  <p>Gerado em ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; Próxima quinta: ${dataStr}</p>
+  <table>
+    <thead><tr><th>#</th><th>Cliente</th><th>Endereço</th><th>Bairro</th><th>Data</th></tr></thead>
+    <tbody>${linhas}</tbody>
+  </table>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+// ─────────────────────────────────────────────
+//  DATA AUXILIAR
+// ─────────────────────────────────────────────
+function proximaQuintaInput() {
+  var hoje = new Date();
+  var dias = (3 - hoje.getDay() + 7) % 7;
+  hoje.setDate(hoje.getDate() + dias);
+  var ano = hoje.getFullYear();
+  var mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  var dia = String(hoje.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+window.onload = function() {
+  document.getElementById('campoBusca').focus();
+  carregarRota();
+};
+</script>
+</body>
+</html>
