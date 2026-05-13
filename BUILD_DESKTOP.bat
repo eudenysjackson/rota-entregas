@@ -6,7 +6,7 @@ echo.
 echo  ==========================================
 echo   [1/2] Instalando dependencias...
 echo  ==========================================
-pip install -r requirements_desktop.txt -q
+C:\Python314\python.exe -m pip install -r requirements_desktop.txt -q
 
 echo.
 echo  ==========================================
@@ -19,7 +19,7 @@ if exist "build" rmdir /s /q "build"
 if exist "dist"  rmdir /s /q "dist"
 if exist "RotaEntregas.spec" del "RotaEntregas.spec"
 
-pyinstaller --onefile --noconsole ^
+C:\Python314\python.exe -m PyInstaller --onefile --noconsole ^
   --name "RotaEntregas" ^
   --add-data "templates;templates" ^
   --add-data "static;static" ^
