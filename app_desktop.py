@@ -2,40 +2,56 @@ import unicodedata
 import os
 import sys
 import time
+import json
 import sqlite3
 import threading
 import webbrowser
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, redirect
 from googleapiclient.discovery import build
 
 # ─────────────────────────────────────────────
-#  CAMINHO BASE (funciona tanto como .py quanto como .exe)
+#  CAMINHOS  (dados em %APPDATA%\RotaEntregas)
 # ─────────────────────────────────────────────
-def _base_dir():
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+def _appdata_dir():
+    base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    path = os.path.join(base, "RotaEntregas")
+    os.makedirs(path, exist_ok=True)
+    return path
 
-_BASE = _base_dir()
-
-# Carrega .env se existir (ex: .env ao lado do .exe)
-_env_file = os.path.join(_BASE, ".env")
-if os.path.exists(_env_file):
-    with open(_env_file, encoding="utf-8") as _f:
-        for _line in _f:
-            _line = _line.strip()
-            if _line and not _line.startswith("#") and "=" in _line:
-                _k, _, _v = _line.partition("=")
-                os.environ.setdefault(_k.strip(), _v.strip())
+_APPDATA     = _appdata_dir()
+_CONFIG_FILE = os.path.join(_APPDATA, "config.json")
+DB_FILE      = os.path.join(_APPDATA, "rota.db")
 
 # ─────────────────────────────────────────────
-#  CONFIGURAÇÕES
+#  CONFIGURACAO  (salva em config.json)
 # ─────────────────────────────────────────────
-ID_PLANILHA_BASE = os.environ.get("ID_PLANILHA_BASE", "16aLq8UzMfWs78ewzGCmKvM_7DjL5IO7MqUce0BPb9SE")
-NOME_ABA_BASE    = os.environ.get("NOME_ABA_BASE", "novo")
-GOOGLE_API_KEY   = os.environ.get("GOOGLE_API_KEY", "")
-DB_FILE          = os.path.join(_BASE, "rota.db")
+_DEFAULT_CFG = {
+    "GOOGLE_API_KEY":   "",
+    "ID_PLANILHA_BASE": "16aLq8UzMfWs78ewzGCmKvM_7DjL5IO7MqUce0BPb9SE",
+    "NOME_ABA_BASE":    "novo",
+}
 
+def _load_config():
+    if os.path.exists(_CONFIG_FILE):
+        with open(_CONFIG_FILE, encoding="utf-8") as f:
+            return {**_DEFAULT_CFG, **json.load(f)}
+    return dict(_DEFAULT_CFG)
+
+def _save_config(data):
+    with open(_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+_CFG = _load_config()
+
+def cfg(key):
+    return _CFG.get(key, _DEFAULT_CFG.get(key, ""))
+
+def _api_key_ok():
+    return bool(cfg("GOOGLE_API_KEY").strip())
+
+# ─────────────────────────────────────────────
+#  RANKINGS DE BAIRROS
+# ─────────────────────────────────────────────
 RANKING_BAIRROS = {
     'CENTRO': 100, 'LAPA': 100, 'GLORIA': 100,
     'TIJUCA': 90, 'VILA ISABEL': 90, 'MARACANA': 90, 'GRAJAU': 90, 'MEIER': 90,
@@ -52,7 +68,7 @@ RANKING_BAIRROS = {
 }
 
 # ─────────────────────────────────────────────
-#  FLASK (templates/static via PyInstaller)
+#  FLASK  (templates/static via PyInstaller)
 # ─────────────────────────────────────────────
 def _resource(folder):
     if getattr(sys, "frozen", False):
@@ -67,7 +83,7 @@ _cache_base = {"dados": [], "ts": 0}
 CACHE_TTL   = 300
 
 # ─────────────────────────────────────────────
-#  BANCO DE DADOS (SQLite local)
+#  BANCO DE DADOS  (SQLite local)
 # ─────────────────────────────────────────────
 def get_db_conn():
     conn = sqlite3.connect(DB_FILE)
@@ -120,10 +136,10 @@ def salvar_rota(rota):
         conn.close()
 
 # ─────────────────────────────────────────────
-#  GOOGLE SHEETS (leitura pública via API key)
+#  GOOGLE SHEETS  (leitura publica via API key)
 # ─────────────────────────────────────────────
 def get_sheets_service():
-    return build("sheets", "v4", developerKey=GOOGLE_API_KEY)
+    return build("sheets", "v4", developerKey=cfg("GOOGLE_API_KEY"))
 
 def obter_dados_base():
     agora = time.time()
@@ -131,8 +147,8 @@ def obter_dados_base():
         return _cache_base["dados"]
     service = get_sheets_service()
     result  = service.spreadsheets().values().get(
-        spreadsheetId=ID_PLANILHA_BASE,
-        range=f"{NOME_ABA_BASE}!A2:M"
+        spreadsheetId=cfg("ID_PLANILHA_BASE"),
+        range=f"{cfg('NOME_ABA_BASE')}!A2:M"
     ).execute()
     linhas = result.get("values", [])
     _cache_base["dados"] = linhas
@@ -140,7 +156,7 @@ def obter_dados_base():
     return linhas
 
 # ─────────────────────────────────────────────
-#  UTILITÁRIOS
+#  UTILITARIOS
 # ─────────────────────────────────────────────
 def normalizar(texto):
     if not texto:
@@ -174,10 +190,34 @@ def ordenar(rota):
 # ─────────────────────────────────────────────
 @app.route("/")
 def index():
+    if not _api_key_ok():
+        return redirect("/configurar")
     return render_template("index.html")
+
+@app.route("/configurar")
+def pagina_configurar():
+    return render_template("configurar.html",
+                           api_key=cfg("GOOGLE_API_KEY"),
+                           planilha=cfg("ID_PLANILHA_BASE"),
+                           aba=cfg("NOME_ABA_BASE"))
+
+@app.route("/api/configurar", methods=["POST"])
+def api_configurar():
+    dados = request.json
+    api_key = dados.get("GOOGLE_API_KEY", "").strip()
+    if not api_key:
+        return jsonify({"ok": False, "msg": "Informe a Google API Key."})
+    _CFG["GOOGLE_API_KEY"]   = api_key
+    _CFG["ID_PLANILHA_BASE"] = dados.get("ID_PLANILHA_BASE", cfg("ID_PLANILHA_BASE")).strip()
+    _CFG["NOME_ABA_BASE"]    = dados.get("NOME_ABA_BASE", cfg("NOME_ABA_BASE")).strip()
+    _save_config(_CFG)
+    _cache_base["ts"] = 0
+    return jsonify({"ok": True})
 
 @app.route("/api/buscar")
 def api_buscar():
+    if not _api_key_ok():
+        return jsonify([])
     termo = request.args.get("q", "").strip()
     if len(termo) < 2:
         return jsonify([])
@@ -251,5 +291,8 @@ def api_limpar():
 if __name__ == "__main__":
     init_db()
     port = 5000
-    threading.Timer(1.2, lambda: webbrowser.open(f"http://localhost:{port}")).start()
+    url  = f"http://localhost:{port}"
+    if not _api_key_ok():
+        url += "/configurar"
+    threading.Timer(1.2, lambda: webbrowser.open(url)).start()
     app.run(debug=False, port=port, use_reloader=False)
