@@ -6,16 +6,15 @@ echo.
 echo  ==========================================
 echo   Instalando dependencias (so na 1a vez)...
 echo  ==========================================
-pip install -r requirements.txt -q
+pip install -r requirements_desktop.txt -q
 
 echo.
 echo  ==========================================
 echo   Iniciando sistema...
-echo   Abrindo navegador em http://localhost:5000
+echo   O navegador abrira automaticamente.
 echo  ==========================================
 echo.
 
-start "" "http://localhost:5000"
-python app.py
+python app_desktop.py
 
 pause

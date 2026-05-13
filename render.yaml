@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: rota-entregas
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rota-entregas-db
+          property: connectionString
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ID_PLANILHA_BASE
+        value: 16aLq8UzMfWs78ewzGCmKvM_7DjL5IO7MqUce0BPb9SE
+      - key: NOME_ABA_BASE
+        value: novo
+
+databases:
+  - name: rota-entregas-db
+    databaseName: rota_entregas
+    plan: free
