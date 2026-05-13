@@ -26,7 +26,7 @@ DB_FILE      = os.path.join(_APPDATA, "rota.db")
 #  CONFIGURACAO  (salva em config.json)
 # ─────────────────────────────────────────────
 _DEFAULT_CFG = {
-    "GOOGLE_API_KEY":   "",
+    "GOOGLE_API_KEY":   "AIzaSyBI_6wws4Ec34jvXVrjYkDtxD6C7qDiayU",
     "ID_PLANILHA_BASE": "16aLq8UzMfWs78ewzGCmKvM_7DjL5IO7MqUce0BPb9SE",
     "NOME_ABA_BASE":    "novo",
 }
@@ -190,8 +190,6 @@ def ordenar(rota):
 # ─────────────────────────────────────────────
 @app.route("/")
 def index():
-    if not _api_key_ok():
-        return redirect("/configurar")
     return render_template("index.html")
 
 @app.route("/configurar")
@@ -292,7 +290,5 @@ if __name__ == "__main__":
     init_db()
     port = 5000
     url  = f"http://localhost:{port}"
-    if not _api_key_ok():
-        url += "/configurar"
     threading.Timer(1.2, lambda: webbrowser.open(url)).start()
     app.run(debug=False, port=port, use_reloader=False)

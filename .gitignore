@@ -16,3 +16,9 @@ venv/
 # VS Code
 .vscode/
 *.code-workspace
+
+# Build artifacts
+build/
+dist/
+*.spec
+
